@@ -1,0 +1,16 @@
+Per episode reward tracking
+
+Varying analysis:-
+	- Vary Epsilon value
+	- Vary the number of buckets in the observation space  (More number of states)
+	- Visualising Q values (To check)
+
+If something can be solved by a Q-Table and basic Q-Learning, you really ought to use that.
+DQN's can be used for getting the action for scenarios that have not yet been encountered by 
+the agent. It can solve for more complex envirnments.
+
+But the memory required to maintain this is very high.
+
+If it takes minuntes for Q-table, it'll take hours for training Deep Q Learning.
+
+
