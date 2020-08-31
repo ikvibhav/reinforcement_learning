@@ -10,16 +10,12 @@ print(env.observation_space.low)	#[-1.2  -0.07]
 print(env.action_space.n)			#3
 
 DISCRETE_BUCKETS = 20
-EPISODES = 5000
+EPISODES = 30000
 DISCOUNT = 0.95
 EPISODE_DISPLAY = 500
 LEARNING_RATE = 0.1
-EPSILON = 0.2			#Decent behaviour at epsilon=0.2
-
-#Discretise each dimension of the observation space to size DISCRETE_BUCKETS
-DISCRETE_STATE_SIZE = [DISCRETE_BUCKETS]*len(env.observation_space.high)
-DISCRETE_WIN_SIZE = (env.observation_space.high-env.observation_space.low)/DISCRETE_STATE_SIZE
-print(DISCRETE_WIN_SIZE)
+EPSILON = 0.5
+EPSILON_DECREMENTER = EPSILON/(EPISODES//4)
 
 #Q-Table of size DISCRETE_BUCKETS*DISCRETE_BUCKETS*env.action_space.n
 Q_TABLE = np.random.randn(DISCRETE_BUCKETS,DISCRETE_BUCKETS,env.action_space.n)
@@ -28,16 +24,16 @@ Q_TABLE = np.random.randn(DISCRETE_BUCKETS,DISCRETE_BUCKETS,env.action_space.n)
 ep_rewards = []
 ep_rewards_table = {'ep': [], 'avg': [], 'min': [], 'max': []}
 
-#print(np.shape(Q_TABLE))
-
 def discretised_state(state):
+	DISCRETE_WIN_SIZE = (env.observation_space.high-env.observation_space.low)/[DISCRETE_BUCKETS]*len(env.observation_space.high)
 	discrete_state = (state-env.observation_space.low)//DISCRETE_WIN_SIZE
 	return tuple(discrete_state.astype(np.int))		#integer tuple as we need to use it later on to extract Q table values
 
 for episode in range(EPISODES):
 	episode_reward = 0
-	curr_discrete_state = discretised_state(env.reset())
 	done = False
+
+	curr_discrete_state = discretised_state(env.reset())
 
 	if episode % EPISODE_DISPLAY == 0:
 		render_state = True
@@ -58,14 +54,15 @@ for episode in range(EPISODES):
 		if not done:
 			max_future_q = np.max(Q_TABLE[new_discrete_state])
 			current_q = Q_TABLE[curr_discrete_state+(action,)]
-			new_q = (1-LEARNING_RATE)*current_q + LEARNING_RATE*(reward + DISCOUNT*max_future_q)
+			new_q = current_q + LEARNING_RATE*(reward + DISCOUNT*max_future_q - current_q)
 			Q_TABLE[curr_discrete_state+(action,)]=new_q
 		elif new_state[0] >= env.goal_position:
-			print(f"We made it on episode {episode}")
 			Q_TABLE[curr_discrete_state + (action,)] = 0
 
 		curr_discrete_state = new_discrete_state
 		episode_reward += reward
+
+	EPSILON = EPSILON - EPSILON_DECREMENTER
 
 	ep_rewards.append(episode_reward)
 
@@ -84,6 +81,9 @@ plt.plot(ep_rewards_table['ep'], ep_rewards_table['avg'], label="avg")
 plt.plot(ep_rewards_table['ep'], ep_rewards_table['min'], label="min")
 plt.plot(ep_rewards_table['ep'], ep_rewards_table['max'], label="max")
 plt.legend(loc=4) #bottom right
+plt.title('Mountain Car Q-Learning')
+plt.ylabel('Average reward/Episode')
+plt.xlabel('Episodes')
 plt.show()
 
 

@@ -1,5 +1,3 @@
-#Need to refer this https://mc.ai/openai-gyms-cart-pole-balancing-using-q-learning/
-#or this https://medium.com/@flomay/using-q-learning-to-solve-the-cartpole-balancing-problem-c0a7f47d3f9d
 import gym
 import numpy as np
 import math
@@ -14,13 +12,11 @@ print(env.action_space.n)			#2
 
 #Hyperparamters
 DISCRETE_BUCKETS = 20
-EPISODES = 2000
+EPISODES = 30000
 DISCOUNT = 0.95
 EPISODE_DISPLAY = 500
 LEARNING_RATE = 0.25
-EPSILON = 0.2
-#EPSILON_MIN = 0.1
-#EPSILON_DECREMENTER = (EPSILON - EPSILON_MIN)//EPISODES
+EPSILON = 0.1
 
 
 #Q-Table of size theta_state_size*theta_dot_state_size*env.action_space.n
@@ -49,7 +45,6 @@ def discretised_state(state, index):
 
 	return tuple(discrete_state.astype(np.int))
 
-#print(discretised_state(env.reset()))
 
 for state_size_iter in range(len(theta_state_size)):
 	Q_TABLE = np.random.randn(theta_state_size[state_size_iter],theta_dot_state_size[state_size_iter],env.action_space.n)
@@ -64,7 +59,7 @@ for state_size_iter in range(len(theta_state_size)):
 			render_state = True
 		else:
 			render_state = False
-		#print(curr_discrete_state)
+
 		while not done:
 			if np.random.random() > EPSILON:
 				action = np.argmax(Q_TABLE[curr_discrete_state])
@@ -81,16 +76,10 @@ for state_size_iter in range(len(theta_state_size)):
 				current_q = Q_TABLE[curr_discrete_state[0],curr_discrete_state[1], action]
 				new_q = current_q + LEARNING_RATE*(reward + DISCOUNT*max_future_q - current_q)
 				Q_TABLE[curr_discrete_state[0],curr_discrete_state[1], action]=new_q
-			#elif i >= env._max_episode_steps-1:
-			#	Q_TABLE[curr_discrete_state + (action,)] = 0
-				#print(f"We made it on episode {episode}")
 
 			i=i+1
 			curr_discrete_state = new_discrete_state
 			episode_reward += reward
-
-		#if EPSILON > EPSILON_MIN:
-		#	EPSILON = EPSILON - EPSILON_DECREMENTER
 
 		ep_rewards.append(episode_reward)
 
@@ -116,6 +105,7 @@ plt.plot(ep_rewards_table['ep'], ep_rewards_table['two'], label="25")
 plt.plot(ep_rewards_table['ep'], ep_rewards_table['three'], label="50")
 plt.legend(loc=4) #bottom right
 plt.title('CartPole Q-Learning state size sensitivity')
+plt.ylabel('Average reward/Episode')
 plt.ylabel('Average Reward')
 plt.xlabel('Episodes')
 plt.show()

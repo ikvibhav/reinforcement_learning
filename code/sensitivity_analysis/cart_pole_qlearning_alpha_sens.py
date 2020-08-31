@@ -1,5 +1,3 @@
-#Need to refer this https://mc.ai/openai-gyms-cart-pole-balancing-using-q-learning/
-#or this https://medium.com/@flomay/using-q-learning-to-solve-the-cartpole-balancing-problem-c0a7f47d3f9d
 import gym
 import numpy as np
 import math
@@ -19,9 +17,6 @@ DISCOUNT = 0.95
 EPISODE_DISPLAY = 500
 LEARNING_RATE = [0.1, 0.25, 0.75, 1]
 EPSILON = 0.1
-#EPSILON_MIN = 0.1
-#EPSILON_DECREMENTER = (EPSILON - EPSILON_MIN)//EPISODES
-
 
 #Q-Table of size theta_state_size*theta_dot_state_size*env.action_space.n
 theta_minmax = env.observation_space.high[2] #math.radians(24)
@@ -49,7 +44,6 @@ def discretised_state(state):
 
 	return tuple(discrete_state.astype(np.int))
 
-#print(discretised_state(env.reset()))
 
 for alpha_iter in range(len(LEARNING_RATE)):
 	Q_TABLE = np.random.randn(theta_state_size,theta_dot_state_size,env.action_space.n)
@@ -64,7 +58,7 @@ for alpha_iter in range(len(LEARNING_RATE)):
 			render_state = True
 		else:
 			render_state = False
-		#print(curr_discrete_state)
+
 		while not done:
 			if np.random.random() > EPSILON:
 				action = np.argmax(Q_TABLE[curr_discrete_state])
@@ -81,16 +75,10 @@ for alpha_iter in range(len(LEARNING_RATE)):
 				current_q = Q_TABLE[curr_discrete_state[0],curr_discrete_state[1], action]
 				new_q = current_q + LEARNING_RATE[alpha_iter]*(reward + DISCOUNT*max_future_q - current_q)
 				Q_TABLE[curr_discrete_state[0],curr_discrete_state[1], action]=new_q
-			#elif i >= env._max_episode_steps-1:
-			#	Q_TABLE[curr_discrete_state + (action,)] = 0
-				#print(f"We made it on episode {episode}")
 
 			i=i+1
 			curr_discrete_state = new_discrete_state
 			episode_reward += reward
-
-		#if EPSILON > EPSILON_MIN:
-		#	EPSILON = EPSILON - EPSILON_DECREMENTER
 
 		ep_rewards.append(episode_reward)
 

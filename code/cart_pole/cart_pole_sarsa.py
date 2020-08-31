@@ -11,21 +11,17 @@ print(env.observation_space.low)	#[-4.8000002e+00 -3.4028235e+38 -4.1887903e-01 
 print(env.action_space.n)			#2
 
 #Hyperparamters
-DISCRETE_BUCKETS = 20
-EPISODES = 20000
+EPISODES = 30000
 DISCOUNT = 0.95
 EPISODE_DISPLAY = 500
 LEARNING_RATE = 0.25
-EPSILON = 0.6
-EPSILON_MIN = 0.2
-EPSILON_DECREMENTER = (EPSILON - EPSILON_MIN)//EPISODES
-
+EPSILON = 0.2
 
 #Q-Table of size theta_state_size*theta_dot_state_size*env.action_space.n
-theta_minmax = 15
-theta_dot_minmax = 50
-theta_state_size = 7
-theta_dot_state_size = 13
+theta_minmax = env.observation_space.high[2] 
+theta_dot_minmax = math.radians(50)
+theta_state_size = 50
+theta_dot_state_size = 50
 Q_TABLE = np.random.randn(theta_state_size,theta_dot_state_size,env.action_space.n)
 
 # For stats
@@ -36,70 +32,15 @@ def discretised_state(state):
 	#state[2] -> theta
 	#state[3] -> theta_dot
 	discrete_state = np.array([0,0])		#Initialised discrete array
-	if state[2] < math.radians(-15):
-		discrete_state[0] = 0
-	elif state[2] < math.radians(-10):
-		discrete_state[0] = 1
-	elif state[2] < math.radians(-5):
-		discrete_state[0] = 2
-	elif state[2] < math.radians(0):
-		discrete_state[0] = 3
-	elif state[2] < math.radians(5):
-		discrete_state[0] = 4
-	elif state[2] < math.radians(10):
-		discrete_state[0] = 5
-	else:
-		discrete_state[0] = 6
+	theta_window =  ( theta_minmax - (-theta_minmax) ) / theta_state_size
+	discrete_state[0] = ( state[2] - (-theta_minmax) ) // theta_window
+	discrete_state[0] = min(theta_state_size-1, max(0,discrete_state[0]))
 
-	if state[3] < math.radians(-48):
-		discrete_state[1] = 0
-	elif state[3] < math.radians(-40):
-		discrete_state[1] = 1
-	elif state[3] < math.radians(-32):
-		discrete_state[1] = 2
-	elif state[3] < math.radians(-24):
-		discrete_state[1] = 3
-	elif state[3] < math.radians(-16):
-		discrete_state[1] = 4
-	elif state[3] < math.radians(-8):
-		discrete_state[1] = 5
-	elif state[3] < math.radians(0):
-		discrete_state[1] = 6
-	elif state[3] < math.radians(8):
-		discrete_state[1] = 7
-	elif state[3] < math.radians(16):
-		discrete_state[1] = 8
-	elif state[3] < math.radians(24):
-		discrete_state[1] = 9
-	elif state[3] < math.radians(32):
-		discrete_state[1] = 10
-	elif state[3] < math.radians(40):
-		discrete_state[1] = 11
-	else:
-		discrete_state[1] = 12
-	
+	theta_dot_window =  ( theta_dot_minmax - (-theta_dot_minmax) )/ theta_dot_state_size
+	discrete_state[1] = ( state[3] - (-theta_dot_minmax) ) // theta_dot_window
+	discrete_state[1] = min(theta_dot_state_size-1, max(0,discrete_state[1]))
 
-	'''
-	#Check why not working
-	if state[2] < -theta_minmax:
-		discrete_state[0] = 0
-	elif state[2] > theta_minmax:
-		discrete_state[0] = theta_state_size-1
-	else:
-		ratio_theta =  (theta_state_size-1)/2*theta_minmax
-		discrete_state[0] = np.floor((state[2]+theta_minmax)*ratio_theta)
-
-	if state[3] < -theta_dot_minmax:
-		discrete_state[1] = 0
-	elif state[3] > theta_dot_minmax:
-		discrete_state[1] = theta_dot_state_size-1
-	else:
-		ratio_theta_dot =  (theta_dot_state_size-1)/2*theta_dot_minmax
-		discrete_state[1] = np.floor((state[3]+theta_dot_minmax)*ratio_theta_dot)
-	'''
 	return tuple(discrete_state.astype(np.int))
-
-#print(discretised_state(env.reset()))
 
 for episode in range(EPISODES):
 	episode_reward = 0
@@ -133,17 +74,11 @@ for episode in range(EPISODES):
 			max_future_q = Q_TABLE[new_discrete_state+(new_action,)]
 			new_q = current_q + LEARNING_RATE*(reward+DISCOUNT*max_future_q-current_q)
 			Q_TABLE[curr_discrete_state+(action,)]=new_q
-		#else:
-		#	Q_TABLE[curr_discrete_state + (action,)] = 200
-			#print(f"We made it on episode {episode}")
 
 		curr_discrete_state = new_discrete_state
 		action = new_action
 
 		episode_reward += reward
-
-	#if EPSILON > EPSILON_MIN:
-		#EPSILON = EPSILON - EPSILON_DECREMENTER
 
 	ep_rewards.append(episode_reward)
 
@@ -161,4 +96,7 @@ plt.plot(ep_rewards_table['ep'], ep_rewards_table['avg'], label="avg")
 plt.plot(ep_rewards_table['ep'], ep_rewards_table['min'], label="min")
 plt.plot(ep_rewards_table['ep'], ep_rewards_table['max'], label="max")
 plt.legend(loc=4) #bottom right
+plt.title('CartPole SARSA')
+plt.ylabel('Average reward/Episode')
+plt.xlabel('Episodes')
 plt.show()
