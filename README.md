@@ -2,7 +2,12 @@
 
 ## Environment installation
 
-Follow the link (https://gym.openai.com/docs/) to get needed guidance.
+Create a virtual environment using venv
+```bash
+python3 -m venv venv --prompt="rl"
+```
+
+Follow the link (https://gymnasium.farama.org/content/basic_usage/) to get needed guidance.
 ```bash
 pip install gym
 ```
