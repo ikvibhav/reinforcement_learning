@@ -7,9 +7,9 @@ Create a virtual environment using venv
 python3 -m venv venv --prompt="rl"
 ```
 
-Follow the link (https://gymnasium.farama.org/content/basic_usage/) to get needed guidance.
+Install Requirements 
 ```bash
-pip install gym
+pip install -r requirements.txt
 ```
 
 ## Software packages
@@ -18,4 +18,3 @@ To run file on the terminal, run it using
 ```bash
 python3 <NAME_OF_FILE>
 ```
-

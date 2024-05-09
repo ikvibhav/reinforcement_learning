@@ -4,27 +4,33 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 
-env = gym.make("CartPole-v1")
+env = gym.make("CartPole-v1", render_mode="human")
 
 # Environment values
-print(
-    env.observation_space.high
-)  # [4.8000002e+00 3.4028235e+38 4.1887903e-01 3.4028235e+38]
-print(
-    env.observation_space.low
-)  # [-4.8000002e+00 -3.4028235e+38 -4.1887903e-01 -3.4028235e+38]
-print(env.action_space.n)  # 2
+# Observation Space
+# - [Cart Position, Cart Velocity, Pole Angle, Pole Velocity]
+# - Max: [4.8000002e+00 3.4028235e+38 4.1887903e-01 3.4028235e+38]
+# - Min: [-4.8000002e+00 -3.4028235e+38 -4.1887903e-01 -3.4028235e+38]
+# Action Space
+# - [Push Cart to Left, Push Cart to Right]
+# - 0: Push Cart to Left
+# - 1: Push Cart to Right
+print(env.observation_space.high)
+print(env.observation_space.low)
+print(env.action_space.n)
 
 # Hyperparamters
-EPISODES = 30000
+EPISODES = 500  # Max number of episodes = 500 in CartPole-v1
 DISCOUNT = 0.95
-EPISODE_DISPLAY = 500
+EPISODE_DISPLAY = 10
 LEARNING_RATE = 0.25
 EPSILON = 0.2
 
+# Pole Angle and Pole Velocity are considered in this example.
+# Pole Angle is called theta and Pole Velocity is called theta_dot
 # Q-Table of size theta_state_size*theta_dot_state_size*env.action_space.n
 theta_minmax = env.observation_space.high[2]
-theta_dot_minmax = math.radians(50)
+theta_dot_minmax = env.observation_space.high[3]
 theta_state_size = 50
 theta_dot_state_size = 50
 Q_TABLE = np.random.randn(theta_state_size, theta_dot_state_size, env.action_space.n)
@@ -40,14 +46,14 @@ def discretised_state(state):
     discrete_state = np.array([0, 0])  # Initialised discrete array
 
     theta_window = (theta_minmax - (-theta_minmax)) / theta_state_size
-    discrete_state[0] = (state[2] - (-theta_minmax)) // theta_window
+    discrete_state[0] = (state[0][2] - (-theta_minmax)) // theta_window
     discrete_state[0] = min(theta_state_size - 1, max(0, discrete_state[0]))
 
     theta_dot_window = (theta_dot_minmax - (-theta_dot_minmax)) / theta_dot_state_size
-    discrete_state[1] = (state[3] - (-theta_dot_minmax)) // theta_dot_window
+    discrete_state[1] = (state[0][3] - (-theta_dot_minmax)) // theta_dot_window
     discrete_state[1] = min(theta_dot_state_size - 1, max(0, discrete_state[1]))
 
-    return tuple(discrete_state.astype(np.int))
+    return tuple(discrete_state.astype(int))
 
 
 for episode in range(EPISODES):
