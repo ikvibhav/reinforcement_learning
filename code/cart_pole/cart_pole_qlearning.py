@@ -18,9 +18,9 @@ print(env.observation_space.low)
 print(env.action_space.n)
 
 # Hyperparamters
-EPISODES = 100  # Max number of episodes = 500 in CartPole-v1
+EPISODES = 500  # Max number of episodes = 500 in CartPole-v1
 DISCOUNT = 0.95
-EPISODE_DISPLAY = 10
+EPISODE_DISPLAY = 100
 LEARNING_RATE = 0.25
 EPSILON = 0.2
 

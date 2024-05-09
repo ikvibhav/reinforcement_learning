@@ -1,3 +1,12 @@
 # Ignore Python virtual environment files
 venv/
 .venv/
+
+# Ignore Python byte code files
+*.pyc
+
+# Ignore Python cache files
+__pycache__/
+
+# Ignore .png files
+*.png
