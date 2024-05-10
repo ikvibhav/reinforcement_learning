@@ -10,3 +10,6 @@ __pycache__/
 
 # Ignore .png files
 *.png
+
+# Ignore .log files
+*.log

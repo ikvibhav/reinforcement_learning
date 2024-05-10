@@ -1,8 +1,29 @@
+import logging
+import os
+
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm import tqdm
 
-env = gym.make("CartPole-v1", render_mode="human")
+# Setup Logging
+log_file_name = "cart_pole_qlearning.log"
+if os.path.exists(log_file_name):
+    os.remove(log_file_name)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
+file_handler = logging.FileHandler(log_file_name)
+file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+logging.getLogger().propagate = False
+
+env = gym.make("CartPole-v1")  # , render_mode="human")
 
 # Environment values
 # Observation Space
@@ -18,11 +39,11 @@ print(env.observation_space.low)
 print(env.action_space.n)
 
 # Hyperparamters
-EPISODES = 500  # Max number of episodes = 500 in CartPole-v1
+EPISODES = 30000  # Max number of episodes = 500 in CartPole-v1
 DISCOUNT = 0.95
-EPISODE_DISPLAY = 100
-LEARNING_RATE = 0.25
-EPSILON = 0.2
+EPISODE_DISPLAY = 1000
+LEARNING_RATE = 0.075
+EPSILON = 0.8
 
 # Pole Angle and Pole Velocity are considered in this example.
 # Pole Angle is called theta and Pole Velocity is called theta_dot
@@ -55,10 +76,17 @@ def discretised_state(state):
 
 
 def test_discretize_state(state, bins):
-    return tuple(np.digitize(s, b) for s, b in zip(state, bins))
+    # return tuple(np.digitize(s, b) for s, b in zip(state, bins))
+    zipped = zip(state, bins)
+    discretized = []
+    for s, b in zipped:
+        digitized = np.digitize(s, b)
+        digitized = max(min(digitized, len(b) - 1), 0)
+        discretized.append(digitized)
+    return tuple(discretized)
 
 
-for episode in range(EPISODES):
+for episode in tqdm(range(EPISODES)):
     episode_reward = 0
     curr_state, _ = env.reset()
     curr_discrete_state = test_discretize_state(
@@ -68,21 +96,15 @@ for episode in range(EPISODES):
             np.linspace(-theta_dot_minmax, theta_dot_minmax, theta_dot_state_size),
         ],
     )
-    done = False
+    terminated, truncated = False, False
 
-    if episode % EPISODE_DISPLAY == 0:
-        render_state = True
-    else:
-        render_state = False
-
-    while not done:
+    while not terminated or not truncated:
         if np.random.random() > EPSILON:
             action = np.argmax(Q_TABLE[curr_discrete_state])
         else:
             action = np.random.randint(0, env.action_space.n)
 
-        # new_state, reward, done, _ = env.step(action)
-        new_state, reward, done, _, _ = env.step(action)
+        new_state, reward, terminated, truncated, _ = env.step(action)
         new_discrete_state = test_discretize_state(
             new_state,
             [
@@ -90,10 +112,8 @@ for episode in range(EPISODES):
                 np.linspace(-theta_dot_minmax, theta_dot_minmax, theta_dot_state_size),
             ],
         )
-        if render_state:
-            env.render()
 
-        if not done:
+        if not terminated or not truncated:
             max_future_q = np.max(Q_TABLE[new_discrete_state[0], new_discrete_state[1]])
             current_q = Q_TABLE[curr_discrete_state[0], curr_discrete_state[1], action]
             new_q = current_q + LEARNING_RATE * (
@@ -114,8 +134,11 @@ for episode in range(EPISODES):
         ep_rewards_table["avg"].append(avg_reward)
         ep_rewards_table["min"].append(min(ep_rewards[-EPISODE_DISPLAY:]))
         ep_rewards_table["max"].append(max(ep_rewards[-EPISODE_DISPLAY:]))
-        print(
-            f"Episode:{episode} avg:{avg_reward} min:{min(ep_rewards[-EPISODE_DISPLAY:])} max:{max(ep_rewards[-EPISODE_DISPLAY:])}, done = {done}"
+        # print(
+        #    f"Episode:{episode} avg:{avg_reward} min:{min(ep_rewards[-EPISODE_DISPLAY:])} max:{max(ep_rewards[-EPISODE_DISPLAY:])}, done = {done}"
+        # )
+        logger.info(
+            f"Episode:{episode}, avg:{avg_reward} min:{min(ep_rewards[-EPISODE_DISPLAY:])} max:{max(ep_rewards[-EPISODE_DISPLAY:])}, truncated = {truncated}, terminated = {terminated}"
         )
 
 env.close()
