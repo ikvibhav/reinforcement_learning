@@ -48,15 +48,24 @@ EPSILON = 0.8
 # Pole Angle and Pole Velocity are considered in this example.
 # Pole Angle is called theta and Pole Velocity is called theta_dot
 # Q-Table of size theta_state_size*theta_dot_state_size*env.action_space.n
-theta_minmax = env.observation_space.high[2]
+theta_minmax = env.observation_space.high[2] / 2
 theta_dot_minmax = env.observation_space.high[3]
-theta_state_size = 50
-theta_dot_state_size = 50
-Q_TABLE = np.random.randn(theta_state_size, theta_dot_state_size, env.action_space.n)
+theta_state_size = 20
+theta_dot_state_size = 20
+STATE_BINS = [
+    np.linspace(-theta_minmax, theta_minmax, theta_state_size),
+    np.linspace(-theta_dot_minmax, theta_dot_minmax, theta_dot_state_size),
+]
+# Q_TABLE = np.random.randn(theta_state_size, theta_dot_state_size, env.action_space.n)
+Q_TABLE = np.random.uniform(
+    low=0, high=1, size=(theta_state_size, theta_dot_state_size, env.action_space.n)
+)
+import pdb
 
+pdb.set_trace()
 # For stats
-ep_rewards = []
-ep_rewards_table = {"ep": [], "avg": [], "min": [], "max": []}
+episode_rewards_list = []
+summarised_dictionary = {"ep": [], "avg": [], "min": [], "max": []}
 
 
 def discretised_state(state):
@@ -90,61 +99,62 @@ for episode in tqdm(range(EPISODES)):
     episode_reward = 0
     curr_state, _ = env.reset()
     curr_discrete_state = test_discretize_state(
-        [curr_state[2], curr_state[3]],
-        [
-            np.linspace(-theta_minmax, theta_minmax, theta_state_size),
-            np.linspace(-theta_dot_minmax, theta_dot_minmax, theta_dot_state_size),
-        ],
+        [curr_state[2], curr_state[3]], STATE_BINS
     )
     terminated, truncated = False, False
 
-    while not terminated or not truncated:
+    episode_length = 0
+    while not terminated:
+        episode_length += 1
         if np.random.random() > EPSILON:
             action = np.argmax(Q_TABLE[curr_discrete_state])
         else:
             action = np.random.randint(0, env.action_space.n)
 
         new_state, reward, terminated, truncated, _ = env.step(action)
-        new_discrete_state = test_discretize_state(
-            new_state,
-            [
-                np.linspace(-theta_minmax, theta_minmax, theta_state_size),
-                np.linspace(-theta_dot_minmax, theta_dot_minmax, theta_dot_state_size),
-            ],
+        new_discrete_state = test_discretize_state(new_state, STATE_BINS)
+
+        # Q-Learning
+        max_future_q = np.max(Q_TABLE[new_discrete_state[0], new_discrete_state[1]])
+        current_q = Q_TABLE[curr_discrete_state[0], curr_discrete_state[1], action]
+
+        new_q = (1 - LEARNING_RATE) * current_q + LEARNING_RATE * (
+            reward + DISCOUNT * max_future_q
         )
 
-        if not terminated or not truncated:
-            max_future_q = np.max(Q_TABLE[new_discrete_state[0], new_discrete_state[1]])
-            current_q = Q_TABLE[curr_discrete_state[0], curr_discrete_state[1], action]
-            new_q = current_q + LEARNING_RATE * (
-                reward + DISCOUNT * max_future_q - current_q
-            )
-            Q_TABLE[curr_discrete_state[0], curr_discrete_state[1], action] = new_q
+        Q_TABLE[curr_discrete_state[0], curr_discrete_state[1], action] = new_q
 
         curr_discrete_state = new_discrete_state
         episode_reward += reward
 
-    ep_rewards.append(episode_reward)
+    episode_rewards_list.append(episode_reward)
 
     if not episode % EPISODE_DISPLAY:
-        avg_reward = sum(ep_rewards[-EPISODE_DISPLAY:]) / len(
-            ep_rewards[-EPISODE_DISPLAY:]
+        avg_reward = sum(episode_rewards_list[-EPISODE_DISPLAY:]) / len(
+            episode_rewards_list[-EPISODE_DISPLAY:]
         )
-        ep_rewards_table["ep"].append(episode)
-        ep_rewards_table["avg"].append(avg_reward)
-        ep_rewards_table["min"].append(min(ep_rewards[-EPISODE_DISPLAY:]))
-        ep_rewards_table["max"].append(max(ep_rewards[-EPISODE_DISPLAY:]))
-        # print(
-        #    f"Episode:{episode} avg:{avg_reward} min:{min(ep_rewards[-EPISODE_DISPLAY:])} max:{max(ep_rewards[-EPISODE_DISPLAY:])}, done = {done}"
-        # )
+        summarised_dictionary["ep"].append(episode)
+        summarised_dictionary["avg"].append(avg_reward)
+        summarised_dictionary["min"].append(
+            min(episode_rewards_list[-EPISODE_DISPLAY:])
+        )
+        summarised_dictionary["max"].append(
+            max(episode_rewards_list[-EPISODE_DISPLAY:])
+        )
         logger.info(
-            f"Episode:{episode}, avg:{avg_reward} min:{min(ep_rewards[-EPISODE_DISPLAY:])} max:{max(ep_rewards[-EPISODE_DISPLAY:])}, truncated = {truncated}, terminated = {terminated}"
+            (
+                f"Episode:{episode}, avg:{avg_reward} "
+                f"min:{min(episode_rewards_list[-EPISODE_DISPLAY:])} "
+                f"max:{max(episode_rewards_list[-EPISODE_DISPLAY:])}, "
+                f"episode_length = {episode_length}, "
+                f"truncated = {truncated}, terminated = {terminated}"
+            )
         )
 
 env.close()
-plt.plot(ep_rewards_table["ep"], ep_rewards_table["avg"], label="avg")
-plt.plot(ep_rewards_table["ep"], ep_rewards_table["min"], label="min")
-plt.plot(ep_rewards_table["ep"], ep_rewards_table["max"], label="max")
+plt.plot(summarised_dictionary["ep"], summarised_dictionary["avg"], label="avg")
+plt.plot(summarised_dictionary["ep"], summarised_dictionary["min"], label="min")
+plt.plot(summarised_dictionary["ep"], summarised_dictionary["max"], label="max")
 plt.legend(loc=4)  # bottom right
 plt.title("CartPole Q-Learning")
 plt.ylabel("Average reward/Episode")
