@@ -12,12 +12,12 @@ if os.path.exists(log_file_name):
     os.remove(log_file_name)
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger(__name__)
 file_handler = logging.FileHandler(log_file_name)
-file_handler.setLevel(logging.INFO)
+file_handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
@@ -56,6 +56,12 @@ episode_rewards_list = []
 summarised_dictionary = {"ep": [], "avg": [], "min": [], "max": []}
 
 
+def test_single_discretize_state(state, bins):
+    digitized = np.digitize(state, bins)
+    digitized = max(min(digitized, len(bins) - 1), 0)
+    return digitized
+
+
 def test_discretize_state(state, bins):
     # return tuple(np.digitize(s, b) for s, b in zip(state, bins))
     zipped = zip(state, bins)
@@ -71,7 +77,7 @@ for episode in tqdm(range(EPISODES)):
     logger.debug(f"Episode: {episode}")
     episode_reward = 0
     curr_state, _ = env.reset()
-    curr_discrete_state = test_discretize_state(curr_state[2], STATE_BINS)
+    curr_discrete_state = test_single_discretize_state(curr_state[2], STATE_BINS)
     terminated, truncated = False, False
 
     episode_length = 0
@@ -82,7 +88,7 @@ for episode in tqdm(range(EPISODES)):
         else:
             action = np.random.randint(0, env.action_space.n)
         new_state, reward, terminated, truncated, _ = env.step(action)
-        new_discrete_state = test_discretize_state(new_state[2], STATE_BINS)
+        new_discrete_state = test_single_discretize_state(new_state[2], STATE_BINS)
         logger.debug(
             (
                 f"curr_state: {curr_state[2]}, curr_discrete_state: {curr_discrete_state}, "
