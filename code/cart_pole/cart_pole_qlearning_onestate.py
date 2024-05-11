@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 
 # Setup Logging
-log_file_name = "cart_pole_qlearning.log"
+log_file_name = "cart_pole_qlearning_onestate.log"
 if os.path.exists(log_file_name):
     os.remove(log_file_name)
 
@@ -48,39 +48,12 @@ EPSILON = 0.2
 # Pole Angle is called theta and Pole Velocity is called theta_dot
 # Q-Table of size theta_state_size*theta_dot_state_size*env.action_space.n
 theta_minmax = env.observation_space.high[2] / 2
-theta_dot_minmax = env.observation_space.high[3]
 theta_state_size = 50
-theta_dot_state_size = 50
-STATE_BINS = [
-    np.linspace(-theta_minmax, theta_minmax, theta_state_size),
-    np.linspace(-theta_dot_minmax, theta_dot_minmax, theta_dot_state_size),
-]
-# Q_TABLE = np.random.randn(theta_state_size, theta_dot_state_size, env.action_space.n)
-Q_TABLE = np.random.uniform(
-    low=0, high=1, size=(theta_state_size, theta_dot_state_size, env.action_space.n)
-)
-import pdb
-
-pdb.set_trace()
+STATE_BINS = np.linspace(-theta_minmax, theta_minmax, theta_state_size)
+Q_TABLE = np.random.uniform(low=0, high=1, size=(theta_state_size, env.action_space.n))
 # For stats
 episode_rewards_list = []
 summarised_dictionary = {"ep": [], "avg": [], "min": [], "max": []}
-
-
-def discretised_state(state):
-    # state[2] -> theta
-    # state[3] -> theta_dot
-    discrete_state = np.array([0, 0])  # Initialised discrete array
-
-    theta_window = (theta_minmax - (-theta_minmax)) / theta_state_size
-    discrete_state[0] = (state[0][2] - (-theta_minmax)) // theta_window
-    discrete_state[0] = min(theta_state_size - 1, max(0, discrete_state[0]))
-
-    theta_dot_window = (theta_dot_minmax - (-theta_dot_minmax)) / theta_dot_state_size
-    discrete_state[1] = (state[0][3] - (-theta_dot_minmax)) // theta_dot_window
-    discrete_state[1] = min(theta_dot_state_size - 1, max(0, discrete_state[1]))
-
-    return tuple(discrete_state.astype(int))
 
 
 def test_discretize_state(state, bins):
@@ -98,9 +71,7 @@ for episode in tqdm(range(EPISODES)):
     logger.debug(f"Episode: {episode}")
     episode_reward = 0
     curr_state, _ = env.reset()
-    curr_discrete_state = test_discretize_state(
-        [curr_state[2], curr_state[3]], STATE_BINS
-    )
+    curr_discrete_state = test_discretize_state(curr_state[2], STATE_BINS)
     terminated, truncated = False, False
 
     episode_length = 0
@@ -111,25 +82,23 @@ for episode in tqdm(range(EPISODES)):
         else:
             action = np.random.randint(0, env.action_space.n)
         new_state, reward, terminated, truncated, _ = env.step(action)
-        new_discrete_state = test_discretize_state(
-            [new_state[2], new_state[3]], STATE_BINS
-        )
+        new_discrete_state = test_discretize_state(new_state[2], STATE_BINS)
         logger.debug(
             (
-                f"curr_state: {curr_state[2], curr_state[3]}, curr_discrete_state: {curr_discrete_state}, "
-                f"new_state: {new_state[2], new_state[3]}, new_discrete_state: {new_discrete_state}, "
+                f"curr_state: {curr_state[2]}, curr_discrete_state: {curr_discrete_state}, "
+                f"new_state: {new_state[2]}, new_discrete_state: {new_discrete_state}, "
                 f"action: {action}, reward: {reward}, "
             )
         )
         # Q-Learning
-        max_future_q = np.max(Q_TABLE[new_discrete_state[0], new_discrete_state[1]])
-        current_q = Q_TABLE[curr_discrete_state[0], curr_discrete_state[1], action]
+        max_future_q = np.max(Q_TABLE[new_discrete_state])
+        current_q = Q_TABLE[curr_discrete_state, action]
 
         new_q = (1 - LEARNING_RATE) * current_q + LEARNING_RATE * (
             reward + DISCOUNT * max_future_q
         )
 
-        Q_TABLE[curr_discrete_state[0], curr_discrete_state[1], action] = new_q
+        Q_TABLE[curr_discrete_state, action] = new_q
 
         curr_discrete_state = new_discrete_state
         episode_reward += reward
@@ -166,4 +135,4 @@ plt.legend(loc=4)  # bottom right
 plt.title("CartPole Q-Learning")
 plt.ylabel("Average reward/Episode")
 plt.xlabel("Episodes")
-plt.savefig("cartpole_qlearning.png")
+plt.savefig("cartpole_qlearning_onestate.png")
