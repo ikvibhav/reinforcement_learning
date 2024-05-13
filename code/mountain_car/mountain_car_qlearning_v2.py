@@ -38,14 +38,14 @@ Q_TABLE = np.random.uniform(
 )
 LEARNING_RATE = 0.1
 DISCOUNT = 0.95
-EPISODES = 25
+EPISODES = 2500
 EPSILON = 1
 START_EPSILON_DECAYING = 1
 END_EPSILON_DECAYING = EPISODES // 2
 epsilon_decay_value = EPSILON / (END_EPSILON_DECAYING - START_EPSILON_DECAYING)
 
 # For stats
-EPISODE_STATS = 5
+EPISODE_STATS = 100
 episode_rewards_list = []
 summarised_dictionary = {"ep": [], "avg": [], "min": [], "max": []}
 
