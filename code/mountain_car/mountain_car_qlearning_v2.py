@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 
+# Random Number Generator
+default_rng = np.random.default_rng(seed=100)
+
 # Setup Logging
 log_file_name = "mountain_car_qlearning_v2.log"
 if os.path.exists(log_file_name):
@@ -29,16 +32,19 @@ print(env.observation_space.low)  # [-1.2  -0.07]
 print(env.action_space.n)  # 3
 
 # Hyperparamters
-DISCRETE_OS_SIZE = [20] * len(env.observation_space.high)
+DISCRETE_BIN_SIZE = 20
+DISCRETE_OS_SIZE = [DISCRETE_BIN_SIZE] * len(env.observation_space.high)
 discrete_window_size = (
     env.observation_space.high - env.observation_space.low
 ) / DISCRETE_OS_SIZE
-Q_TABLE = np.random.uniform(
+Q_TABLE = default_rng.uniform(
     low=-2, high=0, size=(DISCRETE_OS_SIZE + [env.action_space.n])
 )
 LEARNING_RATE = 0.1
 DISCOUNT = 0.95
 EPISODES = 2000
+
+# Exploration settings
 EPSILON = 1
 START_EPSILON_DECAYING = 1
 END_EPSILON_DECAYING = EPISODES // 2
@@ -64,10 +70,10 @@ for episode in tqdm(range(EPISODES)):
     steps = 0
     while not terminated:
         steps += 1
-        if np.random.random() > EPSILON:
+        if default_rng.random() > EPSILON:
             action = np.argmax(Q_TABLE[curr_discrete_state])
         else:
-            action = np.random.randint(0, env.action_space.n)
+            action = default_rng.integers(env.action_space.n)
 
         new_state, reward, terminated, truncated, _ = env.step(action)
         new_discrete_state = get_discrete_state(new_state)
