@@ -38,7 +38,7 @@ Q_TABLE = np.random.uniform(
 )
 LEARNING_RATE = 0.1
 DISCOUNT = 0.95
-EPISODES = 2500
+EPISODES = 2000
 EPSILON = 1
 START_EPSILON_DECAYING = 1
 END_EPSILON_DECAYING = EPISODES // 2
@@ -79,7 +79,7 @@ for episode in tqdm(range(EPISODES)):
                 reward + DISCOUNT * max_future_q
             )
             Q_TABLE[curr_discrete_state + (action,)] = new_q
-        elif new_state[0] >= env.goal_position:
+        elif new_state[0] >= env.unwrapped.goal_position:
             Q_TABLE[curr_discrete_state + (action,)] = 0
 
         curr_discrete_state = new_discrete_state
@@ -100,7 +100,7 @@ for episode in tqdm(range(EPISODES)):
         summarised_dictionary["max"].append(max(episode_rewards_list[-EPISODE_STATS:]))
         logger.info(
             f"Episode:{episode}, avg:{avg_reward}, "
-            f"min:{min(episode_rewards_list[-EPISODE_STATS:])} "
+            f"min:{min(episode_rewards_list[-EPISODE_STATS:])}, "
             f"max:{max(episode_rewards_list[-EPISODE_STATS:])}, "
             f"steps = {steps}, truncated = {truncated}, terminated = {terminated}"
         )
